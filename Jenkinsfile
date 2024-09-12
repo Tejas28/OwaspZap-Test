@@ -4,7 +4,7 @@ pipeline {
     environment {
         ZAP_GITHUB_URL = "https://github.com/zaproxy/zaproxy.git"  // OWASP ZAP GitHub repository
         ZAP_HOME = "${WORKSPACE}/zap"  // Directory to clone and build OWASP ZAP
-        SCAN_URL = "http://your-application-url.com"  // The URL you want to scan
+        SCAN_URL = "http://localhost:3000/#/"  // The URL you want to scan
     }
 
     stages {
