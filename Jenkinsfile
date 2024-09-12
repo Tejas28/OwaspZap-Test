@@ -2,38 +2,34 @@ pipeline {
     agent any
 
     environment {
+        // Use Java 11 for OWASP ZAP (update the path if needed)
+        JAVA_HOME = "/usr/lib/jvm/java-11-openjdk-amd64"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+
+        // Use a specific stable release tag of OWASP ZAP
+        ZAP_TAG = "v2.11.1"  // You can adjust this tag to the latest stable release
         ZAP_REPO_URL = "https://github.com/zaproxy/zaproxy.git"  // OWASP ZAP GitHub repository
         ZAP_HOME = "${WORKSPACE}/zap"  // Directory to clone and build ZAP
-        CONTAINER_NAME = "juice-shop-${env.BUILD_ID}"  // Unique container name based on build ID
     }
 
     stages {
-        stage('Clone OWASP ZAP from GitHub') {
+        stage('Check Java Version') {
             steps {
                 script {
-                    // Clone the OWASP ZAP repository
-                    sh """
-                    git clone ${ZAP_REPO_URL} ${ZAP_HOME}
-                    cd ${ZAP_HOME}
-                    """
+                    // Verify that the correct Java version is being used
+                    sh 'java -version'
                 }
             }
         }
 
-environment {
-        JAVA_HOME = "/usr/lib/jvm/java-11-openjdk-amd64"  // Use Java 11
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"  // Update PATH to use the correct Java version
-    }
-
-
-         stages {
         stage('Clone OWASP ZAP from GitHub') {
             steps {
                 script {
-                    // Clone the OWASP ZAP repository
+                    // Clone the OWASP ZAP repository and checkout the specified stable release tag
                     sh """
-                    git clone https://github.com/zaproxy/zaproxy.git ${WORKSPACE}/zap
-                    cd ${WORKSPACE}/zap
+                    git clone ${ZAP_REPO_URL} ${ZAP_HOME}
+                    cd ${ZAP_HOME}
+                    git checkout ${ZAP_TAG}
                     """
                 }
             }
@@ -42,21 +38,34 @@ environment {
         stage('Build OWASP ZAP') {
             steps {
                 script {
-                    // Build ZAP using Gradle
+                    // Build OWASP ZAP using Gradle and add verbose logging
                     sh """
-                    cd ${WORKSPACE}/zap
-                    ./gradlew build
+                    cd ${ZAP_HOME}
+                    ./gradlew build --info --stacktrace
                     """
                 }
             }
         }
 
-             
+        stage('Stop and Remove Existing Juice Shop Container') {
+            steps {
+                script {
+                    // Stop and remove any existing "juice-shop" container
+                    sh """
+                    if [ $(docker ps -aq -f name=juice-shop) ]; then
+                        docker stop juice-shop
+                        docker rm juice-shop
+                    fi
+                    """
+                }
+            }
+        }
+
         stage('Start Juice Shop Application') {
             steps {
                 script {
-                    // Start OWASP Juice Shop using Docker with a unique container name
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 3002:3002 bkimminich/juice-shop"
+                    // Start OWASP Juice Shop using Docker
+                    sh 'docker run -d --name juice-shop -p 3000:3000 bkimminich/juice-shop'
                     // Wait for the app to be fully started
                     sleep 30
                 }
@@ -66,13 +75,13 @@ environment {
         stage('Run OWASP ZAP Scan') {
             steps {
                 script {
-                    // Run ZAP (it's built from source)
+                    // Run ZAP in daemon mode and perform a quick scan on Juice Shop
                     sh """
                     cd ${ZAP_HOME}
                     ./gradlew run -Dargs="-daemon -config api.disablekey=true"
                     sleep 20  # Give ZAP time to start
                     ./gradlew zap-cli status -t 120  # Wait for ZAP to be fully ready
-                    ./gradlew zap-cli quick-scan http://localhost:3002
+                    ./gradlew zap-cli quick-scan http://localhost:3000
                     """
                 }
             }
@@ -109,9 +118,9 @@ environment {
         stage('Stop and Remove Juice Shop Application') {
             steps {
                 script {
-                    // Stop and remove the dynamically named Juice Shop container
-                    sh "docker stop ${CONTAINER_NAME}"
-                    sh "docker rm ${CONTAINER_NAME}"
+                    // Stop and remove the Juice Shop Docker container
+                    sh 'docker stop juice-shop'
+                    sh 'docker rm juice-shop'
                 }
             }
         }
@@ -122,5 +131,4 @@ environment {
             cleanWs() // Clean workspace after build
         }
     }
-}
 }
