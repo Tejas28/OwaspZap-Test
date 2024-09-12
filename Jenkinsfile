@@ -20,18 +20,38 @@ pipeline {
             }
         }
 
+environment {
+        JAVA_HOME = "/usr/lib/jvm/java-11-openjdk-amd64"  // Use Java 11
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"  // Update PATH to use the correct Java version
+    }
+
+
+         stages {
+        stage('Clone OWASP ZAP from GitHub') {
+            steps {
+                script {
+                    // Clone the OWASP ZAP repository
+                    sh """
+                    git clone https://github.com/zaproxy/zaproxy.git ${WORKSPACE}/zap
+                    cd ${WORKSPACE}/zap
+                    """
+                }
+            }
+        }
+
         stage('Build OWASP ZAP') {
             steps {
                 script {
-                    // Build ZAP (Gradle is used for building ZAP)
+                    // Build ZAP using Gradle
                     sh """
-                    cd ${ZAP_HOME}
+                    cd ${WORKSPACE}/zap
                     ./gradlew build
                     """
                 }
             }
         }
 
+             
         stage('Start Juice Shop Application') {
             steps {
                 script {
