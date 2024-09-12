@@ -4,6 +4,7 @@ pipeline {
     environment {
         ZAP_REPO_URL = "https://github.com/zaproxy/zaproxy.git"  // OWASP ZAP GitHub repository
         ZAP_HOME = "${WORKSPACE}/zap"  // Directory to clone and build ZAP
+        CONTAINER_NAME = "juice-shop-${env.BUILD_ID}"  // Unique container name based on build ID
     }
 
     stages {
@@ -34,8 +35,8 @@ pipeline {
         stage('Start Juice Shop Application') {
             steps {
                 script {
-                    // Start OWASP Juice Shop using Docker
-                    sh 'docker run -d --name juice-shop -p 3000:3000 bkimminich/juice-shop'
+                    // Start OWASP Juice Shop using Docker with a unique container name
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 3000:3000 bkimminich/juice-shop"
                     // Wait for the app to be fully started
                     sleep 30
                 }
@@ -85,12 +86,12 @@ pipeline {
             }
         }
 
-        stage('Stop Juice Shop Application') {
+        stage('Stop and Remove Juice Shop Application') {
             steps {
                 script {
-                    // Stop and remove the Juice Shop Docker container
-                    sh 'docker stop juice-shop'
-                    sh 'docker rm juice-shop'
+                    // Stop and remove the dynamically named Juice Shop container
+                    sh "docker stop ${CONTAINER_NAME}"
+                    sh "docker rm ${CONTAINER_NAME}"
                 }
             }
         }
@@ -102,4 +103,3 @@ pipeline {
         }
     }
 }
-
