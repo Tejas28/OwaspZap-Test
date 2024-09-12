@@ -2,20 +2,30 @@ pipeline {
     agent any
 
     environment {
-        ZAP_VERSION = "2.13.0" // Specify the ZAP version you want to use
-        ZAP_DOWNLOAD_URL = "https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz"
-        ZAP_HOME = "${WORKSPACE}/zap" // ZAP installation path
+        ZAP_REPO_URL = "https://github.com/zaproxy/zaproxy.git"  // OWASP ZAP GitHub repository
+        ZAP_HOME = "${WORKSPACE}/zap"  // Directory to clone and build ZAP
     }
 
     stages {
-        stage('Download OWASP ZAP') {
+        stage('Clone OWASP ZAP from GitHub') {
             steps {
                 script {
-                    // Download and extract ZAP from GitHub
+                    // Clone the OWASP ZAP repository
                     sh """
-                    curl -L -o zap.tar.gz ${ZAP_DOWNLOAD_URL}
-                    mkdir -p ${ZAP_HOME}
-                    tar -xzf zap.tar.gz -C ${ZAP_HOME} --strip-components=1
+                    git clone ${ZAP_REPO_URL} ${ZAP_HOME}
+                    cd ${ZAP_HOME}
+                    """
+                }
+            }
+        }
+
+        stage('Build OWASP ZAP') {
+            steps {
+                script {
+                    // Build ZAP (Gradle is used for building ZAP)
+                    sh """
+                    cd ${ZAP_HOME}
+                    ./gradlew build
                     """
                 }
             }
@@ -35,12 +45,13 @@ pipeline {
         stage('Run OWASP ZAP Scan') {
             steps {
                 script {
-                    // Run the ZAP baseline scan against the Juice Shop
+                    // Run ZAP (it's built from source)
                     sh """
-                    ${ZAP_HOME}/zap.sh -daemon -config api.disablekey=true
+                    cd ${ZAP_HOME}
+                    ./gradlew run -Dargs="-daemon -config api.disablekey=true"
                     sleep 20  # Give ZAP time to start
-                    ${ZAP_HOME}/zap-cli status -t 120  # Wait for ZAP to be fully ready
-                    ${ZAP_HOME}/zap-cli quick-scan http://localhost:3000
+                    ./gradlew zap-cli status -t 120  # Wait for ZAP to be fully ready
+                    ./gradlew zap-cli quick-scan http://localhost:3000
                     """
                 }
             }
@@ -49,10 +60,10 @@ pipeline {
         stage('Generate ZAP Report') {
             steps {
                 script {
-                    // Generate HTML and XML reports using ZAP
+                    // Generate HTML and XML reports
                     sh """
-                    ${ZAP_HOME}/zap-cli report -o zap_report.html -f html
-                    ${ZAP_HOME}/zap-cli report -o zap_report.xml -f xml
+                    ./gradlew zap-cli report -o zap_report.html -f html
+                    ./gradlew zap-cli report -o zap_report.xml -f xml
                     """
                 }
             }
@@ -69,7 +80,7 @@ pipeline {
                     reportName: 'OWASP ZAP Report'
                 ])
 
-                // Archive the XML report for Jenkins to analyze
+                // Archive the XML report
                 archiveArtifacts artifacts: 'zap_report.xml'
             }
         }
@@ -87,7 +98,8 @@ pipeline {
 
     post {
         always {
-            cleanWs() // Clean the workspace after the build
+            cleanWs() // Clean workspace after build
         }
     }
 }
+
