@@ -2,14 +2,22 @@ pipeline {
     agent any
 
     environment {
-        ZAP_HOME = "/path/to/owasp/zap" // Adjust this if OWASP ZAP is installed natively
+        ZAP_VERSION = "2.13.0" // Specify the ZAP version you want to use
+        ZAP_DOWNLOAD_URL = "https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz"
+        ZAP_HOME = "${WORKSPACE}/zap" // ZAP installation path
     }
 
     stages {
-        stage('Checkout') {
+        stage('Download OWASP ZAP') {
             steps {
-                // No need to checkout the code since we're pulling the Juice Shop image from Docker
-                echo 'No SCM checkout required for Juice Shop'
+                script {
+                    // Download and extract ZAP from GitHub
+                    sh """
+                    curl -L -o zap.tar.gz ${ZAP_DOWNLOAD_URL}
+                    mkdir -p ${ZAP_HOME}
+                    tar -xzf zap.tar.gz -C ${ZAP_HOME} --strip-components=1
+                    """
+                }
             }
         }
 
@@ -27,12 +35,24 @@ pipeline {
         stage('Run OWASP ZAP Scan') {
             steps {
                 script {
-                    // Run OWASP ZAP against Juice Shop
-                    // Use OWASP ZAP Docker image to scan the application running at http://localhost:3000
+                    // Run the ZAP baseline scan against the Juice Shop
                     sh """
-                    docker run -v $WORKSPACE:/zap/wrk/:rw --network="host" -t owasp/zap2docker-stable zap-baseline.py \
-                        -t http://localhost:3000 \
-                        -r zap_report.html -w zap_report.xml
+                    ${ZAP_HOME}/zap.sh -daemon -config api.disablekey=true
+                    sleep 20  # Give ZAP time to start
+                    ${ZAP_HOME}/zap-cli status -t 120  # Wait for ZAP to be fully ready
+                    ${ZAP_HOME}/zap-cli quick-scan http://localhost:3000
+                    """
+                }
+            }
+        }
+
+        stage('Generate ZAP Report') {
+            steps {
+                script {
+                    // Generate HTML and XML reports using ZAP
+                    sh """
+                    ${ZAP_HOME}/zap-cli report -o zap_report.html -f html
+                    ${ZAP_HOME}/zap-cli report -o zap_report.xml -f xml
                     """
                 }
             }
@@ -67,8 +87,7 @@ pipeline {
 
     post {
         always {
-            // Clean the workspace after the build
-            cleanWs()
+            cleanWs() // Clean the workspace after the build
         }
     }
 }
