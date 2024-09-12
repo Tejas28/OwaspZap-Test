@@ -36,7 +36,7 @@ pipeline {
             steps {
                 script {
                     // Start OWASP Juice Shop using Docker with a unique container name
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 3000:3000 bkimminich/juice-shop"
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 3002:3002 bkimminich/juice-shop"
                     // Wait for the app to be fully started
                     sleep 30
                 }
@@ -52,7 +52,7 @@ pipeline {
                     ./gradlew run -Dargs="-daemon -config api.disablekey=true"
                     sleep 20  # Give ZAP time to start
                     ./gradlew zap-cli status -t 120  # Wait for ZAP to be fully ready
-                    ./gradlew zap-cli quick-scan http://localhost:3000
+                    ./gradlew zap-cli quick-scan http://localhost:3002
                     """
                 }
             }
