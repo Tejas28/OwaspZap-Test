@@ -98,7 +98,7 @@ def target
             steps {
                 script {
                     sh '''
-                         docker cp owasp1:/zap/wrk/report.html ${WORKSPACE}/report.html
+                         docker cp owasp1:/zap/wrk/report.html /home/tejas/Zap-Reports/report.html
                      '''
                 }
             }
