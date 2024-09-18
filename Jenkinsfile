@@ -1,7 +1,8 @@
 def scan_type
 def target
  pipeline {
-    
+    agent any
+  
     parameters {
         choice  choices: ['Baseline', 'APIS', 'Full'],
                  description: 'Type of scan that is going to perform inside the container',
