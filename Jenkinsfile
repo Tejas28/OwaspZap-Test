@@ -38,7 +38,7 @@ def target
                 sh 'docker pull owasp/zap2docker-stable:latest'
                 echo 'Pulling up last VMS container --> End'
                 echo 'Starting container --> Start'
-                sh 'docker run -dt --name owasp owasp/zap2docker-stable /bin/bash '
+                sh 'docker run -dt --name owasp zaproxy/zap-stable /bin/bash '
             }
         }
 
