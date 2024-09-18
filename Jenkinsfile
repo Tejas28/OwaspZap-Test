@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         ZAP_DOCKER_IMAGE = "zaproxy/zap-stable"  // OWASP ZAP Docker image
-        SCAN_URL = "http://localhost:3000/#/"  // The URL you want to scan
+        SCAN_URL = "http://example.com/"  // The URL you want to scan
     }
 
     stages {
