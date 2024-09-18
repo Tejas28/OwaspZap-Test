@@ -98,7 +98,7 @@ def target
             steps {
                 script {
                     sh '''
-                         sudo docker cp owasp1:/zap/wrk/report.html /home/tejas/Zap-Reports/report.html
+                         docker cp owasp1:/zap/wrk/report.html /home/tejas/Zap-Reports/report.html
                      '''
                 }
             }
