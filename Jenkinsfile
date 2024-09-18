@@ -4,6 +4,7 @@ pipeline {
     environment {
         ZAP_DOCKER_IMAGE = "zaproxy/zap-stable"  // OWASP ZAP Docker image
         SCAN_URL = "http://example.com/"  // The URL you want to scan
+        WORKSPACE = "/home/tejas/Zap-Reports"
     }
 
     stages {
