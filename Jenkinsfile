@@ -48,7 +48,7 @@ def target
             steps {
                 script {
                     sh '''
-                             docker exec owasp \
+                             docker exec owasp1 \
                              mkdir /zap/wrk
                          '''
                 }
@@ -63,7 +63,7 @@ def target
                     target = "${params.TARGET}"
                     if (scan_type == 'Baseline') {
                         sh """
-                             docker exec owasp \
+                             docker exec owasp1 \
                              zap-baseline.py \
                              -t $target \
                              -r report.html \
@@ -72,7 +72,7 @@ def target
                     }
                      else if (scan_type == 'APIS') {
                         sh """
-                             docker exec owasp \
+                             docker exec owasp1 \
                              zap-api-scan.py \
                              -t $target \
                              -r report.html \
@@ -81,7 +81,7 @@ def target
                      }
                      else if (scan_type == 'Full') {
                         sh """
-                             docker exec owasp \
+                             docker exec owasp1 \
                              zap-full-scan.py \
                              -t $target \
                              -r report.html \
@@ -98,7 +98,7 @@ def target
             steps {
                 script {
                     sh '''
-                         docker cp owasp:/zap/wrk/report.html ${WORKSPACE}/report.html
+                         docker cp owasp1:/zap/wrk/report.html ${WORKSPACE}/report.html
                      '''
                 }
             }
@@ -109,8 +109,8 @@ def target
         always {
             echo 'Removing container'
             sh '''
-                     docker stop owasp
-                     docker rm owasp
+                     docker stop owasp1
+                     docker rm owasp1
                  '''
             cleanWs()
         }
