@@ -1,56 +1,119 @@
-pipeline {
-    agent any
-
-    environment {
-        ZAP_DOCKER_IMAGE = "zaproxy/zap-stable"  // OWASP ZAP Docker image
-        SCAN_URL = "http://example.com/"  // The URL you want to scan
-        WORKSPACE = "/home/tejas/Zap-Reports"
+def scan_type
+def target
+ pipeline {
+    agent {
+        label 'linux'
     }
+    parameters {
+        choice  choices: ['Baseline', 'APIS', 'Full'],
+                 description: 'Type of scan that is going to perform inside the container',
+                 name: 'SCAN_TYPE'
 
+        string defaultValue: 'https://example.com',
+                 description: 'Target URL to scan',
+                 name: 'TARGET'
+
+        booleanParam defaultValue: true,
+                 description: 'Parameter to know if wanna generate report.',
+                 name: 'GENERATE_REPORT'
+    }
     stages {
-        stage('Pull OWASP ZAP Docker Image') {
+        stage('Pipeline Info') {
             steps {
                 script {
-                    // Pull the OWASP ZAP Docker image from Docker Hub
-                    sh "docker pull ${ZAP_DOCKER_IMAGE}"
+                    echo '<--Parameter Initialization-->'
+                    echo """
+                         The current parameters are:
+                             Scan Type: ${params.SCAN_TYPE}
+                             Target: ${params.TARGET}
+                             Generate report: ${params.GENERATE_REPORT}
+                         """
                 }
             }
         }
 
-        stage('Run OWASP ZAP Scan') {
+        stage('Setting up OWASP ZAP docker container') {
+            steps {
+                echo 'Pulling up last OWASP ZAP container --> Start'
+                sh 'docker pull owasp/zap2docker-stable:latest'
+                echo 'Pulling up last VMS container --> End'
+                echo 'Starting container --> Start'
+                sh 'docker run -dt --name owasp owasp/zap2docker-stable /bin/bash '
+            }
+        }
+
+        stage('Prepare wrk directory') {
+            when {
+                environment name : 'GENERATE_REPORT', value: 'true'
+            }
             steps {
                 script {
-                    // Run the OWASP ZAP baseline scan against the given URL
-                    // Replace SCAN_URL with the actual target URL you want to scan
-                    sh """
-                    docker run -v $WORKSPACE:/zap/wrk/:rw --network="host" ${ZAP_DOCKER_IMAGE} zap-baseline.py \
-                    -t ${SCAN_URL} \
-                    -r zap_report.html -w zap_report.xml
-                    """
+                    sh '''
+                             docker exec owasp \
+                             mkdir /zap/wrk
+                         '''
                 }
             }
         }
 
-        stage('Publish ZAP Report') {
+        stage('Scanning target on owasp container') {
             steps {
-                // Publish the ZAP HTML report in Jenkins
-                publishHTML (target: [
-                    allowMissing: false,
-                    keepAll: true,
-                    reportDir: '.',
-                    reportFiles: 'zap_report.html',
-                    reportName: 'OWASP ZAP Report'
-                ])
-
-                // Archive the XML report for Jenkins
-                archiveArtifacts artifacts: 'zap_report.xml'
+                script {
+                    scan_type = "${params.SCAN_TYPE}"
+                    echo "----> scan_type: $scan_type"
+                    target = "${params.TARGET}"
+                    if (scan_type == 'Baseline') {
+                        sh """
+                             docker exec owasp \
+                             zap-baseline.py \
+                             -t $target \
+                             -r report.html \
+                             -I
+                         """
+                    }
+                     else if (scan_type == 'APIS') {
+                        sh """
+                             docker exec owasp \
+                             zap-api-scan.py \
+                             -t $target \
+                             -r report.html \
+                             -I
+                         """
+                     }
+                     else if (scan_type == 'Full') {
+                        sh """
+                             docker exec owasp \
+                             zap-full-scan.py \
+                             -t $target \
+                             -r report.html \
+                             -I
+                         """
+                     }
+                     else {
+                        echo 'Something went wrong...'
+                     }
+                }
             }
         }
+        stage('Copy Report to Workspace') {
+            steps {
+                script {
+                    sh '''
+                         docker cp owasp:/zap/wrk/report.html ${WORKSPACE}/report.html
+                     '''
+                }
+            }
+        }
+
     }
-
     post {
         always {
-            cleanWs() // Clean workspace after build
+            echo 'Removing container'
+            sh '''
+                     docker stop owasp
+                     docker rm owasp
+                 '''
+            cleanWs()
         }
     }
-}
+ }
