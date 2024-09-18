@@ -1,46 +1,17 @@
-pipeline {
+ipeline {
     agent any
 
     environment {
-        ZAP_GITHUB_URL = "https://github.com/zaproxy/zaproxy.git"  // OWASP ZAP GitHub repository
-        ZAP_HOME = "${WORKSPACE}/zap"  // Directory to clone and build OWASP ZAP
+        ZAP_DOCKER_IMAGE = "zaproxy/zap-stable"  // OWASP ZAP Docker image
         SCAN_URL = "http://localhost:3000/#/"  // The URL you want to scan
     }
 
     stages {
-        stage('Clone OWASP ZAP from GitHub') {
+        stage('Pull OWASP ZAP Docker Image') {
             steps {
                 script {
-                    // Clone the OWASP ZAP repository
-                    sh """
-                    git clone ${ZAP_GITHUB_URL} ${ZAP_HOME}
-                    cd ${ZAP_HOME}
-                    """
-                }
-            }
-        }
-
-        stage('Build OWASP ZAP') {
-            steps {
-                script {
-                    // Build OWASP ZAP using Gradle
-                    sh """
-                    cd ${ZAP_HOME}
-                    ./gradlew build
-                    """
-                }
-            }
-        }
-
-        stage('Start OWASP ZAP in Daemon Mode') {
-            steps {
-                script {
-                    // Start OWASP ZAP in daemon mode
-                    sh """
-                    cd ${ZAP_HOME}
-                    ./gradlew run -Dargs="-daemon -config api.disablekey=true"
-                    sleep 20  # Give ZAP time to start
-                    """
+                    // Pull the OWASP ZAP Docker image from Docker Hub
+                    sh "docker pull ${ZAP_DOCKER_IMAGE}"
                 }
             }
         }
@@ -48,23 +19,12 @@ pipeline {
         stage('Run OWASP ZAP Scan') {
             steps {
                 script {
-                    // Run ZAP scan on the target URL
+                    // Run the OWASP ZAP baseline scan against the given URL
+                    // Replace SCAN_URL with the actual target URL you want to scan
                     sh """
-                    cd ${ZAP_HOME}
-                    ./gradlew zap-cli quick-scan ${SCAN_URL}
-                    """
-                }
-            }
-        }
-
-        stage('Generate ZAP Report') {
-            steps {
-                script {
-                    // Generate HTML and XML reports
-                    sh """
-                    cd ${ZAP_HOME}
-                    ./gradlew zap-cli report -o zap_report.html -f html
-                    ./gradlew zap-cli report -o zap_report.xml -f xml
+                    docker run -v $WORKSPACE:/zap/wrk/:rw --network="host" ${ZAP_DOCKER_IMAGE} zap-baseline.py \
+                    -t ${SCAN_URL} \
+                    -r zap_report.html -w zap_report.xml
                     """
                 }
             }
@@ -81,7 +41,7 @@ pipeline {
                     reportName: 'OWASP ZAP Report'
                 ])
 
-                // Archive the XML report
+                // Archive the XML report for Jenkins
                 archiveArtifacts artifacts: 'zap_report.xml'
             }
         }
