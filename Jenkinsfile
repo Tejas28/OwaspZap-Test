@@ -75,6 +75,7 @@ def target
                              docker exec owasp1 \
                              zap-api-scan.py \
                              -t $target \
+                             -f openapi
                              -r report.html \
                              -I
                          """
