@@ -8,7 +8,7 @@ def target
                  description: 'Type of scan that is going to perform inside the container',
                  name: 'SCAN_TYPE'
 
-        string defaultValue: 'https://tallysolutions.com/buy-tally/',
+        string defaultValue: 'https://tallysolutions.com/buy-tally/openapi',
                  description: 'Target URL to scan',
                  name: 'TARGET'
 
