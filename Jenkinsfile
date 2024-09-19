@@ -8,7 +8,7 @@ def target
                  description: 'Type of scan that is going to perform inside the container',
                  name: 'SCAN_TYPE'
 
-        string defaultValue: 'https://example.com/',
+        string defaultValue: 'http://localhost:3000/#/',
                  description: 'Target URL to scan',
                  name: 'TARGET'
 
