@@ -8,7 +8,7 @@ def target
                  description: 'Type of scan that is going to perform inside the container',
                  name: 'SCAN_TYPE'
 
-        string defaultValue: 'https://www.google.com/',
+        string defaultValue: 'http://testphp.vulnweb.com/',
                  description: 'Target URL to scan',
                  name: 'TARGET'
 
