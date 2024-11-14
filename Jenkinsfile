@@ -85,6 +85,7 @@ def target
                              docker exec owasp1 \
                              zap-full-scan.py \
                              -t $target \
+                             -m 15
                              -r report.html \
                              -I
                          """
