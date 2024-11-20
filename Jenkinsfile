@@ -86,7 +86,6 @@ def target
                              zap-full-scan.py \
                              -t $target \
                              -r report.html \
-                             -m 5
                              -I
                          """
                      }
