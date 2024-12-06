@@ -4,6 +4,7 @@ pipeline {
         SCAN_TYPE = "Full" // Set this to "Baseline", "APIS", or "Full" as needed
         TARGET = "https://example.com" // Replace with your target URL
         GENERATE_REPORT = true // Set to true if a report needs to be generated
+        ZAP_API = "http://localhost:8080" // ZAP API endpoint
     }
     stages {
         stage('Initialize Parameters') {
@@ -26,34 +27,8 @@ pipeline {
                     echo "Pulling the latest OWASP ZAP container --> End"
 
                     echo "Starting OWASP ZAP container --> Start"
-                    sh 'docker run -dt --name owasp1 zaproxy/zap-stable /bin/bash'
+                    sh 'docker run -dt --name owasp1 -p 8080:8080 zaproxy/zap-stable zap.sh -daemon -port 8080'
                     echo "OWASP ZAP container started --> End"
-                }
-            }
-        }
-
-        stage('Prepare Working Directory') {
-            when {
-                expression { env.GENERATE_REPORT == 'true' }
-            }
-            steps {
-                script {
-                    echo "Preparing working directory in OWASP ZAP container"
-                    sh 'docker exec owasp1 mkdir -p /zap/wrk'
-                }
-            }
-        }
-
-        stage('Configure Scan Rules for OWASP Top 10') {
-            when {
-                expression { env.SCAN_TYPE == 'Full' }
-            }
-            steps {
-                script {
-                    echo "Configuring OWASP ZAP to use only OWASP Top 10 scan rules"
-                    sh 'docker exec owasp1 zap-cli --zap-url http://localhost --zap-port 8080 ascan disable-all-scanners'
-                    sh 'docker exec owasp1 zap-cli --zap-url http://localhost --zap-port 8080 ascan enable-scanners 40018,90018,10029,10044,10010,10016,90027,10025'
-                    echo "Enabled OWASP Top 10 scan rules"
                 }
             }
         }
@@ -65,14 +40,19 @@ pipeline {
 
                     if (env.SCAN_TYPE == 'Baseline') {
                         echo "Performing Baseline scan"
-                        sh "docker exec owasp1 zap-baseline.py -t ${env.TARGET} -r report.html -I"
+                        sh "docker exec owasp1 zap-baseline.py -t \"${env.TARGET}\" -r report.html -I"
                     } else if (env.SCAN_TYPE == 'APIS') {
                         echo "Performing API scan"
                         sh "docker exec owasp1 zap-api-scan.py -t ${env.TARGET} -f openapi -r report.html -I"
                     } else if (env.SCAN_TYPE == 'Full') {
+                        echo "Configuring OWASP ZAP to use only OWASP Top 10 scan rules for Full scan"
+                        sh "curl \"${env.ZAP_API}/JSON/ascan/action/disableAllScanners/\""
+                        sh "curl \"${env.ZAP_API}/JSON/ascan/action/enableScanners/?ids=40018,90018,10029,10044,10010,10016,90027,10025\""
+                        echo "Enabled OWASP Top 10 scan rules"
+
                         echo "Performing Full scan with OWASP Top 10 rules"
-                        sh 'docker exec -d owasp1 zap.sh -daemon -port 8080'
-                        sh "docker exec owasp1 zap-full-scan.py -t ${env.TARGET} -m 15 -r report.html -I"
+                        sh "curl \"${env.ZAP_API}/JSON/spider/action/scan/?url=${env.TARGET}&maxChildren=10\""
+                        sh "curl \"${env.ZAP_API}/JSON/ascan/action/scan/?url=${env.TARGET}\""
                     } else {
                         error "Invalid scan type: ${env.SCAN_TYPE}. Exiting..."
                     }
@@ -86,22 +66,21 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Copying report to the host machine"
-                    sh 'docker cp owasp1:/zap/wrk/report.html /home/ubuntu/Zap-Reports/report.html'
+                    echo "Retrieving the report via REST API"
+                    sh "curl \"${env.ZAP_API}/OTHER/core/other/htmlreport/\" -o /home/ubuntu/Zap-Reports/report.html"
                 }
             }
         }
     }
     post {
         always {
-                steps {
-                    script {
-                        echo "Stopping and removing the OWASP ZAP container"
-                        sh 'docker stop owasp1'
-                        sh 'docker rm owasp1'
-                    }
+            steps {
+                script {
+                    echo "Stopping and removing the OWASP ZAP container"
+                    sh 'docker stop owasp1'
+                    sh 'docker rm owasp1'
                 }
-            
+            }
         }
     }
 }
