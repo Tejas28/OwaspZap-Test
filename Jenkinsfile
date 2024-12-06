@@ -94,7 +94,7 @@ pipeline {
     }
     post {
         always {
-            stage('Cleanup') {
+            stage('Cleanup') 
                 steps {
                     script {
                         echo "Stopping and removing the OWASP ZAP container"
@@ -102,7 +102,7 @@ pipeline {
                         sh 'docker rm owasp1'
                     }
                 }
-            }
+            
         }
     }
 }
