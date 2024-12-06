@@ -94,7 +94,6 @@ pipeline {
     }
     post {
         always {
-            stage('Cleanup') 
                 steps {
                     script {
                         echo "Stopping and removing the OWASP ZAP container"
