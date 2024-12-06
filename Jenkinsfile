@@ -10,7 +10,7 @@ initialize_parameters() {
     echo "  Generate report: $GENERATE_REPORT"
 }
  
-# Function to pull and run the OWASP ZAP Docker container
+// Function to pull and run the OWASP ZAP Docker container
 setup_owasp_container() {
     echo "Pulling the latest OWASP ZAP container --> Start"
     docker pull zaproxy/zap-stable
@@ -21,7 +21,7 @@ setup_owasp_container() {
     echo "OWASP ZAP container started --> End"
 }
  
-# Function to prepare working directory inside the container
+// Function to prepare working directory inside the container
 prepare_working_directory() {
     if [ "$GENERATE_REPORT" = true ]; then
         echo "Preparing working directory in OWASP ZAP container"
@@ -29,7 +29,7 @@ prepare_working_directory() {
     fi
 }
  
-# Function to configure scan rules for OWASP Top 10
+// Function to configure scan rules for OWASP Top 10
 configure_scan_rules() {
     echo "Configuring OWASP ZAP to use only OWASP Top 10 scan rules"
     # Disable all scan rules
@@ -39,7 +39,7 @@ configure_scan_rules() {
     echo "Enabled OWASP Top 10 scan rules"
 }
  
-# Function to scan the target
+// Function to scan the target
 perform_scan() {
     echo "Starting scan for target: $TARGET with scan type: $SCAN_TYPE"
  
@@ -68,13 +68,13 @@ perform_scan() {
     esac
 }
  
-# Function to copy the generated report to the host machine
+// Function to copy the generated report to the host machine
 copy_report_to_workspace() {
     echo "Copying report to the host machine"
     docker cp owasp1:/zap/wrk/report.html /home/ubuntu/Zap-Reports/report.html
 }
  
-# Function to clean up the container
+// Function to clean up the container
 cleanup() {
     echo "Stopping and removing the OWASP ZAP container"
     docker stop owasp1
@@ -83,23 +83,23 @@ cleanup() {
     #rm -rf /home/ubuntu/Zap-Reports/*
 }
  
-# Main script starts here
+// Main script starts here
  
-# Initialize parameters
+// Initialize parameters
 initialize_parameters
  
-# Set up OWASP ZAP Docker container
+// Set up OWASP ZAP Docker container
 setup_owasp_container
  
-# Prepare working directory if needed
+// Prepare working directory if needed
 prepare_working_directory
  
-# Perform the scan based on the chosen scan type
+// Perform the scan based on the chosen scan type
 perform_scan
  
-# Copy the report to the host workspace
+// Copy the report to the host workspace
 copy_report_to_workspace
  
-# Clean up after the scan
+// Clean up after the scan
 cleanup
 
