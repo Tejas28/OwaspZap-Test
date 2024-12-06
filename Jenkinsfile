@@ -1,7 +1,7 @@
 #!/bin/bash
 whoami
 
-#Function to initialize parameters
+// Function to initialize parameters
 initialize_parameters() {
     echo "<--Parameter Initialization-->"
     echo "The current parameters are:"
