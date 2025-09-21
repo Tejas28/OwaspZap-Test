@@ -27,7 +27,7 @@ pipeline {
                     echo "Pulling the latest OWASP ZAP container --> End"
 
                     echo "Starting OWASP ZAP container --> Start"
-                    sh 'docker run -dt --name owasp2 -p 8080:8080 zaproxy/zap-stable zap.sh -daemon -port 8080'
+                    sh 'docker run -dt --name owasp1 -p 8080:8080 zaproxy/zap-stable zap.sh -daemon -port 8080'
                     echo "OWASP ZAP container started --> End"
                 }
             }
@@ -77,8 +77,8 @@ pipeline {
             steps {
                 script {
                     echo "Stopping and removing the OWASP ZAP container"
-                    sh 'docker stop owasp2'
-                    sh 'docker rm owasp2'
+                    sh 'docker stop owasp1'
+                    sh 'docker rm owasp1'
                 }
             }
         }
