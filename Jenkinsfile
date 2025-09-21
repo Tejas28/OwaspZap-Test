@@ -27,7 +27,7 @@ pipeline {
                     echo "Pulling the latest OWASP ZAP container --> End"
 
                     echo "Starting OWASP ZAP container --> Start"
-                    sh 'docker run -dt --name owasp1 -p 8080:8080 zaproxy/zap-stable zap.sh -daemon -port 8080'
+                    sh 'docker run -dt --name owasp2 -p 8080:8080 zaproxy/zap-stable zap.sh -daemon -port 8080'
                     echo "OWASP ZAP container started --> End"
                 }
             }
@@ -40,10 +40,10 @@ pipeline {
 
                     if (env.SCAN_TYPE == 'Baseline') {
                         echo "Performing Baseline scan"
-                        sh "docker exec owasp1 zap-baseline.py -t \"${env.TARGET}\" -r report.html -I"
+                        sh "docker exec owasp2 zap-baseline.py -t \"${env.TARGET}\" -r report.html -I"
                     } else if (env.SCAN_TYPE == 'APIS') {
                         echo "Performing API scan"
-                        sh "docker exec owasp1 zap-api-scan.py -t ${env.TARGET} -f openapi -r report.html -I"
+                        sh "docker exec owasp2 zap-api-scan.py -t ${env.TARGET} -f openapi -r report.html -I"
                     } else if (env.SCAN_TYPE == 'Full') {
                         echo "Configuring OWASP ZAP to use only OWASP Top 10 scan rules for Full scan"
                         sh "curl \"${env.ZAP_API}/JSON/ascan/action/disableAllScanners/\""
@@ -77,8 +77,8 @@ pipeline {
             steps {
                 script {
                     echo "Stopping and removing the OWASP ZAP container"
-                    sh 'docker stop owasp1'
-                    sh 'docker rm owasp1'
+                    sh 'docker stop owasp2'
+                    sh 'docker rm owasp2'
                 }
             }
         }
