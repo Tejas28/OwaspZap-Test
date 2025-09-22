@@ -1,10 +1,10 @@
 pipeline {
     agent any
     environment {
-        SCAN_TYPE = "Full" // Set this to "Baseline", "APIS", or "Full" as needed
+        SCAN_TYPE = "Baseline" // Set this to "Baseline", "APIS", or "Full" as needed
         TARGET = "https://dev-mdashboard.dev.gokwik.in/login#" // Replace with your target URL
         GENERATE_REPORT = true // Set to true if a report needs to be generated
-        ZAP_API = "http://localhost:8080" // ZAP API endpoint
+        ZAP_API = "http://localhost:8081" // ZAP API endpoint
     }
     stages {
         stage('Initialize Parameters') {
